@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import './ScanDetail.css';
 import axios from 'axios';
 
+// URL de l'API
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 function ScanDetail({ scan, onBack }) {
   const [scanDetails, setScanDetails] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -22,17 +25,24 @@ function ScanDetail({ scan, onBack }) {
 
   const fetchScanDetails = async () => {
     try {
-      const response = await axios.get(`http://localhost:8000/api/scans/${scan.id}`);
+      const response = await axios.get(`${API_URL}/api/scans/${scan.id}`, {
+        timeout: 10000,
+      });
       setScanDetails(response.data);
       setLoading(false);
+      setError('');
     } catch (err) {
-      setError('Erreur lors de la récupération des détails du scan');
+      if (err.code === 'ECONNREFUSED' || err.message.includes('Failed to fetch')) {
+        setError('Impossible de se connecter au serveur. Vérifiez que l\'API est démarrée.');
+      } else {
+        setError('Erreur lors de la récupération des détails du scan');
+      }
       setLoading(false);
     }
   };
 
   const handleViewReport = () => {
-    window.open(`http://localhost:8000/api/scans/${scan.id}/report`, '_blank');
+    window.open(`${API_URL}/api/scans/${scan.id}/report`, '_blank');
   };
 
   if (loading) {

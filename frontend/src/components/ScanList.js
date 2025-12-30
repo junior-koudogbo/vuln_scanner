@@ -2,17 +2,21 @@ import React, { useState, useEffect } from 'react';
 import './ScanList.css';
 import axios from 'axios';
 
-function ScanList({ scans, onScanSelect, onRefresh }) {
+function ScanList({ scans, onScanSelect, onRefresh, apiAvailable }) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Rafraîchir automatiquement toutes les 5 secondes
+    // Rafraîchir automatiquement toutes les 5 secondes seulement si l'API est disponible
+    if (!apiAvailable) {
+      return;
+    }
+    
     const interval = setInterval(() => {
       onRefresh();
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [onRefresh]);
+  }, [onRefresh, apiAvailable]);
 
   const getStatusBadgeClass = (status) => {
     switch (status) {

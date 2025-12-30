@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import './ScanForm.css';
 import axios from 'axios';
 
-function ScanForm({ onScanCreated }) {
+// URL de l'API
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+function ScanForm({ onScanCreated, apiAvailable }) {
   const [targetUrl, setTargetUrl] = useState('');
   const [scanType, setScanType] = useState('full');
   const [loading, setLoading] = useState(false);
@@ -11,18 +14,30 @@ function ScanForm({ onScanCreated }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    if (!apiAvailable) {
+      setError('Le serveur backend n\'est pas disponible. Veuillez démarrer l\'API.');
+      return;
+    }
+    
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:8000/api/scans', {
+      const response = await axios.post(`${API_URL}/api/scans`, {
         target_url: targetUrl,
         scan_type: scanType
+      }, {
+        timeout: 10000, // Timeout de 10 secondes
       });
 
       onScanCreated(response.data);
       setTargetUrl('');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erreur lors de la création du scan');
+      if (err.code === 'ECONNREFUSED' || err.message.includes('Failed to fetch')) {
+        setError('Impossible de se connecter au serveur. Vérifiez que l\'API est démarrée.');
+      } else {
+        setError(err.response?.data?.detail || 'Erreur lors de la création du scan');
+      }
     } finally {
       setLoading(false);
     }
@@ -59,8 +74,8 @@ function ScanForm({ onScanCreated }) {
 
           {error && <div className="error-message">{error}</div>}
 
-          <button type="submit" disabled={loading} className="submit-button">
-            {loading ? 'Création du scan...' : 'Lancer le scan'}
+          <button type="submit" disabled={loading || !apiAvailable} className="submit-button">
+            {loading ? 'Création du scan...' : !apiAvailable ? 'API non disponible' : 'Lancer le scan'}
           </button>
         </form>
       </div>

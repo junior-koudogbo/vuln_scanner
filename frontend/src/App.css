@@ -26,6 +26,21 @@
   padding: 30px 20px;
 }
 
+.api-error-banner {
+  background: #fee;
+  color: #c33;
+  padding: 15px 20px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  border-left: 4px solid #c33;
+  text-align: center;
+}
+
+.api-error-banner p {
+  margin: 0;
+  font-weight: 500;
+}
+
 @media (max-width: 768px) {
   .App-header h1 {
     font-size: 1.8em;
