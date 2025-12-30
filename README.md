@@ -94,7 +94,7 @@ vuln_scanner/
 
 ```bash
 # Cloner le repository
-git clone <repository-url>
+git clone <https://github.com/junior-koudogbo/vuln_scanner.git>
 cd vuln_scanner
 
 # Construire et lancer tous les services (API + Frontend + ZAP)
@@ -111,7 +111,7 @@ docker-compose up --build
 
 1. **Cloner le repository**
 ```bash
-git clone <repository-url>
+git clone <https://github.com/junior-koudogbo/vuln_scanner.git>
 cd vuln_scanner
 ```
 
