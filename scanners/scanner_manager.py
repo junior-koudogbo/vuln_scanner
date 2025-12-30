@@ -58,6 +58,12 @@ class ScannerManager:
             results = self.nmap_scanner.scan(target_url)
             if results:
                 for result in results:
+                    # CORRECTION CRITIQUE : Ne traiter que les ports réellement ouverts
+                    port_state = result.get('state', '').lower()
+                    if port_state != 'open':
+                        # Ignorer les ports fermés, filtrés ou dans un autre état
+                        continue
+                    
                     port = result.get('port')
                     severity, cvss, recommendation = self._analyze_port_for_web_server(port, result, target_url)
                     

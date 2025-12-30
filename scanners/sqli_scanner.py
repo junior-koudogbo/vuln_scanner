@@ -113,48 +113,94 @@ class SQLiScanner:
                 if not inputs:
                     continue
                 
-                # Tester les champs de type text
-                for input_field in inputs:
-                    input_name = input_field.get('name', '')
-                    input_type = input_field.get('type', 'text').lower()
+                # Obtenir une réponse baseline pour comparaison
+                try:
+                    baseline_data = {}
+                    for input_field in inputs:
+                        input_name = input_field.get('name', '')
+                        if input_name:
+                            baseline_data[input_name] = 'test'
                     
-                    if not input_name or input_type not in ['text', 'email', 'search']:
-                        continue
-                    
-                    payload = self.sqli_payloads[0]
-                    
-                    # Construire l'URL de test
                     form_url = urlparse(action) if action else urlparse(target_url)
                     if not form_url.netloc:
                         form_url = urlparse(target_url)
                     
-                    test_data = {input_name: payload}
+                    if method == 'post':
+                        baseline_response = requests.post(
+                            f"{form_url.scheme}://{form_url.netloc}{form_url.path or '/'}",
+                            data=baseline_data,
+                            timeout=5,
+                            allow_redirects=True
+                        )
+                    else:
+                        baseline_response = requests.get(
+                            f"{form_url.scheme}://{form_url.netloc}{form_url.path or '/'}",
+                            params=baseline_data,
+                            timeout=5,
+                            allow_redirects=True
+                        )
+                except:
+                    baseline_response = None
+                
+                # Tester TOUS les champs de type text avec plusieurs payloads
+                for input_field in inputs:
+                    input_name = input_field.get('name', '')
+                    input_type = input_field.get('type', 'text').lower()
                     
-                    try:
-                        if method == 'post':
-                            test_response = requests.post(
-                                f"{form_url.scheme}://{form_url.netloc}{form_url.path or '/'}",
-                                data=test_data,
-                                timeout=5
-                            )
-                        else:
-                            test_response = requests.get(
-                                f"{form_url.scheme}://{form_url.netloc}{form_url.path or '/'}",
-                                params=test_data,
-                                timeout=5
-                            )
-                        
-                        if self._check_sqli_errors(test_response.text):
-                            vulnerabilities.append({
-                                'description': f"Vulnérabilité SQL Injection potentielle dans le formulaire (champ '{input_name}').",
-                                'severity': 'critical',
-                                'cvss_score': 9.0,
-                                'form_field': input_name,
-                                'payload': payload
-                            })
-                            break
-                    except:
+                    if not input_name or input_type in ['hidden', 'submit', 'button', 'password']:
                         continue
+                    
+                    # Tester plusieurs payloads SQLi
+                    for payload in self.sqli_payloads[:5]:
+                        # Construire l'URL de test
+                        form_url = urlparse(action) if action else urlparse(target_url)
+                        if not form_url.netloc:
+                            form_url = urlparse(target_url)
+                        
+                        test_data = baseline_data.copy() if baseline_data else {}
+                        test_data[input_name] = payload
+                        
+                        try:
+                            if method == 'post':
+                                test_response = requests.post(
+                                    f"{form_url.scheme}://{form_url.netloc}{form_url.path or '/'}",
+                                    data=test_data,
+                                    timeout=5,
+                                    allow_redirects=True
+                                )
+                            else:
+                                test_response = requests.get(
+                                    f"{form_url.scheme}://{form_url.netloc}{form_url.path or '/'}",
+                                    params=test_data,
+                                    timeout=5,
+                                    allow_redirects=True
+                                )
+                            
+                            # Vérifier les erreurs SQL
+                            if self._check_sqli_errors(test_response.text):
+                                vulnerabilities.append({
+                                    'description': f"Vulnérabilité SQL Injection potentielle dans le formulaire (champ '{input_name}'). Erreurs SQL détectées dans la réponse.",
+                                    'severity': 'critical',
+                                    'cvss_score': 9.0,
+                                    'form_field': input_name,
+                                    'payload': payload,
+                                    'form_action': action or target_url
+                                })
+                                break  # Une vulnérabilité trouvée pour ce champ
+                            
+                            # Vérifier les différences de réponse
+                            if baseline_response and self._check_response_difference(test_response.text, baseline_response.text):
+                                vulnerabilities.append({
+                                    'description': f"Vulnérabilité SQL Injection potentielle dans le formulaire (champ '{input_name}'). Réponse anormale détectée.",
+                                    'severity': 'high',
+                                    'cvss_score': 8.0,
+                                    'form_field': input_name,
+                                    'payload': payload,
+                                    'form_action': action or target_url
+                                })
+                                break
+                        except:
+                            continue
             
             return vulnerabilities
         except Exception as e:
