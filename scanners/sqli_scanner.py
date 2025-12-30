@@ -49,47 +49,53 @@ class SQLiScanner:
             parsed = urlparse(target_url)
             vulnerabilities = []
             
+            # TOUJOURS scanner les formulaires, même s'il y a des paramètres dans l'URL
+            form_vulns = self._scan_forms(target_url)
+            vulnerabilities.extend(form_vulns)
+            
             # Extraire les paramètres de l'URL
             params = parse_qs(parsed.query)
             
-            if not params:
-                # Si pas de paramètres, tester les formulaires
-                return self._scan_forms(target_url)
-            
-            # Tester chaque paramètre avec des payloads SQLi
-            for param_name, param_values in params.items():
-                for payload in self.sqli_payloads[:5]:  # Limiter pour éviter trop de requêtes
-                    test_url = self._build_test_url(target_url, param_name, payload)
-                    
-                    try:
-                        response = requests.get(test_url, timeout=5, allow_redirects=False)
+            if params:
+                # Obtenir une réponse baseline
+                try:
+                    baseline_response = requests.get(target_url, timeout=5, allow_redirects=True)
+                except:
+                    baseline_response = None
+                
+                # Tester chaque paramètre avec des payloads SQLi
+                for param_name, param_values in params.items():
+                    for payload in self.sqli_payloads[:5]:  # Limiter pour éviter trop de requêtes
+                        test_url = self._build_test_url(target_url, param_name, payload)
                         
-                        # Vérifier les erreurs SQL dans la réponse
-                        if self._check_sqli_errors(response.text):
-                            vulnerabilities.append({
-                                'description': f"Vulnérabilité SQL Injection potentielle dans le paramètre '{param_name}'. Erreurs SQL détectées dans la réponse.",
-                                'severity': 'critical',
-                                'cvss_score': 9.0,
-                                'parameter': param_name,
-                                'payload': payload,
-                                'url': test_url
-                            })
-                            break
-                        
-                        # Vérifier les différences de réponse (time-based serait mieux mais plus complexe)
-                        baseline_response = requests.get(target_url, timeout=5)
-                        if self._check_response_difference(response.text, baseline_response.text):
-                            vulnerabilities.append({
-                                'description': f"Vulnérabilité SQL Injection potentielle dans le paramètre '{param_name}'. Réponse anormale détectée.",
-                                'severity': 'high',
-                                'cvss_score': 8.0,
-                                'parameter': param_name,
-                                'payload': payload,
-                                'url': test_url
-                            })
-                            break
-                    except:
-                        continue
+                        try:
+                            response = requests.get(test_url, timeout=5, allow_redirects=True)
+                            
+                            # Vérifier les erreurs SQL dans la réponse
+                            if self._check_sqli_errors(response.text):
+                                vulnerabilities.append({
+                                    'description': f"Vulnérabilité SQL Injection potentielle dans le paramètre '{param_name}'. Erreurs SQL détectées dans la réponse.",
+                                    'severity': 'critical',
+                                    'cvss_score': 9.0,
+                                    'parameter': param_name,
+                                    'payload': payload,
+                                    'url': test_url
+                                })
+                                break
+                            
+                            # Vérifier les différences de réponse
+                            if baseline_response and self._check_response_difference(response.text, baseline_response.text):
+                                vulnerabilities.append({
+                                    'description': f"Vulnérabilité SQL Injection potentielle dans le paramètre '{param_name}'. Réponse anormale détectée.",
+                                    'severity': 'high',
+                                    'cvss_score': 8.0,
+                                    'parameter': param_name,
+                                    'payload': payload,
+                                    'url': test_url
+                                })
+                                break
+                        except:
+                            continue
             
             return vulnerabilities
         except Exception as e:
@@ -142,37 +148,38 @@ class SQLiScanner:
                 except:
                     baseline_response = None
                 
-                # Tester TOUS les champs de type text avec plusieurs payloads
+                # Construire l'URL complète du formulaire
+                form_url = urlparse(action) if action else urlparse(target_url)
+                if not form_url.netloc:
+                    form_url = urlparse(target_url)
+                full_form_url = f"{form_url.scheme}://{form_url.netloc}{form_url.path or '/'}"
+                
+                # Tester TOUS les champs, y compris password (important pour les formulaires de login)
                 for input_field in inputs:
                     input_name = input_field.get('name', '')
                     input_type = input_field.get('type', 'text').lower()
                     
-                    if not input_name or input_type in ['hidden', 'submit', 'button', 'password']:
+                    if not input_name or input_type in ['hidden', 'submit', 'button']:
                         continue
                     
                     # Tester plusieurs payloads SQLi
-                    for payload in self.sqli_payloads[:5]:
-                        # Construire l'URL de test
-                        form_url = urlparse(action) if action else urlparse(target_url)
-                        if not form_url.netloc:
-                            form_url = urlparse(target_url)
-                        
+                    for payload in self.sqli_payloads[:6]:
                         test_data = baseline_data.copy() if baseline_data else {}
                         test_data[input_name] = payload
                         
                         try:
                             if method == 'post':
                                 test_response = requests.post(
-                                    f"{form_url.scheme}://{form_url.netloc}{form_url.path or '/'}",
+                                    full_form_url,
                                     data=test_data,
-                                    timeout=5,
+                                    timeout=8,
                                     allow_redirects=True
                                 )
                             else:
                                 test_response = requests.get(
-                                    f"{form_url.scheme}://{form_url.netloc}{form_url.path or '/'}",
+                                    full_form_url,
                                     params=test_data,
-                                    timeout=5,
+                                    timeout=8,
                                     allow_redirects=True
                                 )
                             
@@ -184,7 +191,7 @@ class SQLiScanner:
                                     'cvss_score': 9.0,
                                     'form_field': input_name,
                                     'payload': payload,
-                                    'form_action': action or target_url
+                                    'form_action': full_form_url
                                 })
                                 break  # Une vulnérabilité trouvée pour ce champ
                             
@@ -196,7 +203,7 @@ class SQLiScanner:
                                     'cvss_score': 8.0,
                                     'form_field': input_name,
                                     'payload': payload,
-                                    'form_action': action or target_url
+                                    'form_action': full_form_url
                                 })
                                 break
                         except:

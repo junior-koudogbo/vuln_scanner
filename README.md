@@ -224,10 +224,23 @@ Junior Koudogbo.
 
 ## 🚀 Améliorations futures
 
-- Intégration OWASP ZAP API
+- ✅ Intégration OWASP ZAP API (implémentée - voir ZAP_SETUP.md)
 - Support de l'authentification
 - Export PDF des rapports
 - Planification de scans récurrents
 - Dashboard avec statistiques
 - Intégration CI/CD
+
+## 🕷️ OWASP ZAP
+
+ZAP est maintenant intégré ! Pour l'utiliser :
+
+1. **Démarrer ZAP** (voir `ZAP_SETUP.md` pour les détails) :
+```bash
+docker run -d -p 8080:8080 owasp/zap2docker-stable zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
+```
+
+2. **Lancer un scan complet** : ZAP sera automatiquement utilisé pour des scans actifs plus poussés (Spider + Active Scan)
+
+Les résultats ZAP sont fusionnés avec les résultats des autres scanners dans le rapport.
 

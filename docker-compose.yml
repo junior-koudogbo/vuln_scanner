@@ -26,3 +26,10 @@ services:
     depends_on:
       - api
 
+  # ZAP (optionnel - décommenter pour utiliser)
+  # zap:
+  #   image: owasp/zap2docker-stable:latest
+  #   ports:
+  #     - "8080:8080"
+  #   command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
+

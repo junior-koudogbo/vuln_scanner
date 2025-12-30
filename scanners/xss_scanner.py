@@ -78,36 +78,37 @@ class XSSScanner:
                 if not inputs:
                     continue
                 
-                # Tester TOUS les champs de texte, pas seulement le premier
+                # Construire l'URL complète du formulaire
+                form_url = urlparse(action) if action else urlparse(target_url)
+                if not form_url.netloc:
+                    form_url = urlparse(target_url)
+                full_form_url = f"{form_url.scheme}://{form_url.netloc}{form_url.path or '/'}"
+                
+                # Tester TOUS les champs, y compris password (important pour les formulaires de login)
                 for input_field in inputs:
                     input_name = input_field.get('name', '')
                     input_type = input_field.get('type', 'text').lower()
                     
-                    if not input_name or input_type in ['hidden', 'submit', 'button', 'password']:
+                    if not input_name or input_type in ['hidden', 'submit', 'button']:
                         continue
                     
                     # Tester plusieurs payloads pour chaque champ
-                    for payload in self.xss_payloads[:3]:
-                        # Construire l'URL de test
-                        form_url = urlparse(action) if action else urlparse(target_url)
-                        if not form_url.netloc:
-                            form_url = urlparse(target_url)
-                        
+                    for payload in self.xss_payloads[:4]:
                         test_data = {input_name: payload}
                         
                         try:
                             if method == 'post':
                                 test_response = requests.post(
-                                    f"{form_url.scheme}://{form_url.netloc}{form_url.path or '/'}",
+                                    full_form_url,
                                     data=test_data,
-                                    timeout=5,
+                                    timeout=8,
                                     allow_redirects=True
                                 )
                             else:
                                 test_response = requests.get(
-                                    f"{form_url.scheme}://{form_url.netloc}{form_url.path or '/'}",
+                                    full_form_url,
                                     params=test_data,
-                                    timeout=5,
+                                    timeout=8,
                                     allow_redirects=True
                                 )
                             
@@ -118,10 +119,11 @@ class XSSScanner:
                                     'cvss_score': 7.5,
                                     'form_field': input_name,
                                     'payload': payload,
-                                    'form_action': action or target_url
+                                    'form_action': full_form_url
                                 })
                                 break  # Une vulnérabilité trouvée pour ce champ
-                        except:
+                        except Exception as e:
+                            print(f"Erreur lors du test XSS sur {input_name}: {e}")
                             continue
             
             # Tester aussi les champs de recherche dans la page (hors formulaires)
@@ -163,48 +165,63 @@ class XSSScanner:
         return f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query}"
 
     def _check_xss_reflection(self, html_content: str, payload: str) -> bool:
-        """Vérifier si le payload est reflété dans le HTML"""
-        # Vérifier si le payload est présent dans le HTML (même partiellement)
+        """Vérifier si le payload est reflété dans le HTML de manière vulnérable"""
         payload_lower = payload.lower()
         html_lower = html_content.lower()
         
-        # Vérifier la présence du payload (échappé ou non)
-        if payload in html_content or payload_lower in html_lower:
-            # Vérifier qu'il n'est pas dans un commentaire HTML
-            if f"<!--{payload}" in html_content or f"<!--{payload_lower}" in html_lower:
-                return False
-            
-            # Vérifier qu'il n'est pas complètement échappé (HTML entities)
-            escaped_payload = payload.replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
-            if escaped_payload in html_content and payload not in html_content:
-                # Le payload est échappé, donc probablement sécurisé
-                return False
-            
-            # Si le payload contient des balises script
-            if '<script' in payload_lower:
-                # Chercher des balises script non échappées dans le HTML
-                if re.search(r'<script[^>]*>.*?' + re.escape(payload), html_content, re.IGNORECASE | re.DOTALL):
+        # Vérifier la présence du payload dans le HTML
+        if payload not in html_content and payload_lower not in html_lower:
+            return False
+        
+        # Vérifier qu'il n'est pas dans un commentaire HTML
+        if f"<!--{payload}" in html_content or f"<!--{payload_lower}" in html_lower:
+            return False
+        
+        # Vérifier qu'il n'est pas complètement échappé (HTML entities)
+        escaped_payload = payload.replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#39;')
+        if escaped_payload in html_content and payload not in html_content:
+            # Le payload est échappé, donc probablement sécurisé
+            return False
+        
+        # Si le payload contient des balises script
+        if '<script' in payload_lower:
+            # Chercher des balises script non échappées
+            if re.search(r'<script[^>]*>', html_content, re.IGNORECASE):
+                # Vérifier si notre payload est dans une balise script
+                script_pattern = r'<script[^>]*>.*?' + re.escape(payload) + r'.*?</script>'
+                if re.search(script_pattern, html_content, re.IGNORECASE | re.DOTALL):
                     return True
-                # Ou si le payload script apparaît tel quel
-                if payload in html_content:
-                    return True
-            
-            # Si le payload contient des attributs d'événement
-            if 'onerror' in payload_lower or 'onload' in payload_lower or 'onclick' in payload_lower:
+            # Ou si le payload script apparaît tel quel (non échappé)
+            if payload in html_content:
+                return True
+        
+        # Si le payload contient des attributs d'événement (onerror, onload, etc.)
+        event_attrs = ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus']
+        for attr in event_attrs:
+            if attr in payload_lower:
                 # Chercher des attributs d'événement dans le HTML
-                if re.search(r'on\w+\s*=\s*["\']?[^"\'>]*' + re.escape(payload), html_content, re.IGNORECASE):
+                pattern = r'<[^>]+\s+' + attr + r'\s*=\s*["\']?[^"\'>]*' + re.escape(payload) + r'[^"\'>]*["\']?[^>]*>'
+                if re.search(pattern, html_content, re.IGNORECASE):
                     return True
-                # Ou si le payload apparaît dans un attribut
-                if re.search(r'<[^>]+\s+' + re.escape(payload) + r'[^>]*>', html_content, re.IGNORECASE):
+                # Ou si le payload apparaît dans un attribut d'événement
+                if re.search(r'<[^>]+\s+' + attr + r'\s*=\s*["\']?[^"\'>]*' + re.escape(payload), html_content, re.IGNORECASE):
                     return True
-            
-            # Si le payload contient des balises HTML simples
-            if payload.startswith('<') and payload.endswith('>'):
-                # Vérifier si la balise apparaît non échappée
-                if payload in html_content:
-                    # Vérifier qu'elle n'est pas dans un contexte sécurisé
-                    if not re.search(r'&lt;' + re.escape(payload[1:-1]) + r'&gt;', html_content):
-                        return True
+        
+        # Si le payload contient des balises HTML simples (<img>, <svg>, etc.)
+        if payload.startswith('<') and payload.endswith('>'):
+            # Vérifier si la balise apparaît non échappée
+            if payload in html_content:
+                # Vérifier qu'elle n'est pas dans un contexte sécurisé (échappée)
+                escaped_tag = payload.replace('<', '&lt;').replace('>', '&gt;')
+                if escaped_tag not in html_content:
+                    return True
+        
+        # Vérifier les payloads javascript:
+        if payload.startswith('javascript:'):
+            if payload in html_content or payload_lower in html_lower:
+                # Vérifier qu'il n'est pas échappé
+                if 'javascript:' in html_content.lower():
+                    return True
         
         return False
 

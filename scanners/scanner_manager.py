@@ -5,8 +5,10 @@ from scanners.headers_scanner import HeadersScanner
 from scanners.xss_scanner import XSSScanner
 from scanners.sqli_scanner import SQLiScanner
 from scanners.version_scanner import VersionScanner
+from scanners.zap_scanner import ZAPScanner
 from api.database import Vulnerability
 import requests
+import os
 
 
 class ScannerManager:
@@ -19,6 +21,10 @@ class ScannerManager:
         self.xss_scanner = XSSScanner()
         self.sqli_scanner = SQLiScanner()
         self.version_scanner = VersionScanner()
+        # ZAP Scanner (optionnel - utilise l'API ZAP si disponible)
+        zap_url = os.getenv('ZAP_PROXY_URL', 'http://localhost:8080')
+        zap_key = os.getenv('ZAP_API_KEY', None)
+        self.zap_scanner = ZAPScanner(zap_proxy_url=zap_url, zap_api_key=zap_key)
 
     def run_quick_scan(self, target_url: str):
         """Scan rapide - headers et ports uniquement"""
@@ -51,6 +57,9 @@ class ScannerManager:
         
         # Scan Nikto (si disponible)
         self._scan_nikto(target_url)
+        
+        # Scan ZAP (si disponible) - Spider + Active Scan
+        self._scan_zap(target_url)
 
     def _scan_ports(self, target_url: str):
         """Scanner les ports ouverts"""
@@ -180,6 +189,40 @@ class ScannerManager:
                     )
         except Exception as e:
             print(f"Erreur lors du scan Nikto: {e}")
+
+    def _scan_zap(self, target_url: str):
+        """Scanner avec OWASP ZAP (si disponible)"""
+        try:
+            if not self.zap_scanner.is_available():
+                print("[!] ZAP n'est pas disponible. Le scan ZAP sera ignoré.")
+                print("[!] Pour utiliser ZAP, démarrez-le avec: zap.sh -daemon -port 8080")
+                return
+            
+            results = self.zap_scanner.scan(target_url)
+            if results:
+                for result in results:
+                    # Construire une recommandation complète
+                    recommendation = result.get('solution', '')
+                    if result.get('reference'):
+                        recommendation += f"\nRéférence: {result.get('reference')}"
+                    
+                    self._save_vulnerability(
+                        title=result.get('title', 'Vulnérabilité détectée par OWASP ZAP'),
+                        description=f"{result.get('description', '')}\nURL: {result.get('url', target_url)}\nParamètre: {result.get('parameter', 'N/A')}",
+                        severity=result.get('severity', 'medium'),
+                        cvss_score=result.get('cvss_score', 5.5),
+                        vuln_type="zap",
+                        recommendation=recommendation or 'Consulter les références de sécurité pour plus d\'informations.',
+                        evidence={
+                            'url': result.get('url'),
+                            'parameter': result.get('parameter'),
+                            'evidence': result.get('evidence'),
+                            'cweid': result.get('cweid'),
+                            'wascid': result.get('wascid')
+                        }
+                    )
+        except Exception as e:
+            print(f"Erreur lors du scan ZAP: {e}")
 
     def _save_vulnerability(self, title: str, description: str, severity: str,
                            cvss_score: float, vuln_type: str, recommendation: str, evidence: dict = None):
