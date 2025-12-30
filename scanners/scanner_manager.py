@@ -58,15 +58,30 @@ class ScannerManager:
             results = self.nmap_scanner.scan(target_url)
             if results:
                 for result in results:
-                    self._save_vulnerability(
-                        title=f"Port ouvert détecté: {result.get('port')}/{result.get('protocol')}",
-                        description=f"Le port {result.get('port')} ({result.get('protocol')}) est ouvert sur {target_url}",
-                        severity=self._get_severity_for_port(result.get('port')),
-                        cvss_score=self._calculate_cvss_for_port(result.get('port')),
-                        vuln_type="ports",
-                        recommendation="Fermer les ports non nécessaires. Utiliser un firewall pour restreindre l'accès.",
-                        evidence=result
-                    )
+                    port = result.get('port')
+                    severity, cvss, recommendation = self._analyze_port_for_web_server(port, result, target_url)
+                    
+                    # Ne pas signaler les ports web standards comme des vulnérabilités
+                    if severity == "info":
+                        self._save_vulnerability(
+                            title=f"Port web standard détecté: {port}/{result.get('protocol')}",
+                            description=f"Le port {port} ({result.get('protocol')}) est ouvert. C'est normal pour un serveur web.",
+                            severity=severity,
+                            cvss_score=cvss,
+                            vuln_type="ports",
+                            recommendation=recommendation,
+                            evidence=result
+                        )
+                    else:
+                        self._save_vulnerability(
+                            title=f"Port inhabituel détecté: {port}/{result.get('protocol')}",
+                            description=f"Le port {port} ({result.get('protocol')}) est ouvert sur {target_url}. Vérifiez si ce port est nécessaire pour un serveur web public.",
+                            severity=severity,
+                            cvss_score=cvss,
+                            vuln_type="ports",
+                            recommendation=recommendation,
+                            evidence=result
+                        )
         except Exception as e:
             print(f"Erreur lors du scan de ports: {e}")
 
@@ -176,27 +191,81 @@ class ScannerManager:
         self.db.add(vuln)
         self.db.commit()
 
-    def _get_severity_for_port(self, port: int) -> str:
-        """Déterminer la sévérité selon le port"""
-        critical_ports = [21, 23, 135, 139, 445, 1433, 3306, 5432, 3389]
-        high_ports = [80, 443, 8080, 8443]
+    def _analyze_port_for_web_server(self, port: int, port_info: dict, target_url: str):
+        """
+        Analyser un port dans le contexte d'un serveur web.
+        Retourne (severity, cvss_score, recommendation)
+        """
+        # Ports web standards - normaux pour un serveur web
+        WEB_STANDARD_PORTS = [80, 443]
         
-        if port in critical_ports:
-            return "high"
-        elif port in high_ports:
-            return "medium"
-        else:
-            return "low"
-
-    def _calculate_cvss_for_port(self, port: int) -> float:
-        """Calculer un score CVSS simplifié pour un port"""
-        critical_ports = [21, 23, 135, 139, 445, 1433, 3306, 5432, 3389]
-        high_ports = [80, 443, 8080, 8443]
+        # Ports web alternatifs - souvent utilisés pour le développement ou reverse proxy
+        WEB_ALTERNATIVE_PORTS = [8080, 8443, 8000, 8888]
         
-        if port in critical_ports:
-            return 7.5
-        elif port in high_ports:
-            return 5.0
-        else:
-            return 3.0
+        # Ports critiques qui ne devraient PAS être exposés publiquement sur un serveur web
+        CRITICAL_EXPOSED_PORTS = {
+            21: ("FTP", "high", 7.5),
+            22: ("SSH", "high", 7.0),  # SSH devrait être sur un port non-standard ou via VPN
+            23: ("Telnet", "critical", 9.0),  # Telnet non chiffré
+            135: ("RPC", "high", 7.5),
+            139: ("NetBIOS", "high", 7.0),
+            445: ("SMB", "high", 8.0),
+            1433: ("MSSQL", "critical", 9.0),
+            3306: ("MySQL", "critical", 9.0),
+            5432: ("PostgreSQL", "critical", 9.0),
+            3389: ("RDP", "critical", 9.0),
+            27017: ("MongoDB", "critical", 9.0),
+            6379: ("Redis", "critical", 9.0),
+        }
+        
+        # Ports suspects mais moins critiques
+        SUSPICIOUS_PORTS = {
+            25: ("SMTP", "medium", 5.0),
+            110: ("POP3", "medium", 5.0),
+            143: ("IMAP", "medium", 5.0),
+        }
+        
+        # Ports web standards - juste informatif
+        if port in WEB_STANDARD_PORTS:
+            service = port_info.get('service', 'http' if port == 80 else 'https')
+            return (
+                "info",
+                0.0,
+                f"Port web standard {port} ({service}) détecté. C'est normal pour un serveur web public."
+            )
+        
+        # Ports web alternatifs - faible risque, souvent utilisé pour reverse proxy
+        if port in WEB_ALTERNATIVE_PORTS:
+            service = port_info.get('service', 'http-alt')
+            return (
+                "low",
+                2.0,
+                f"Port web alternatif {port} ({service}) détecté. Vérifiez si ce port est intentionnellement exposé."
+            )
+        
+        # Ports critiques - ne devraient pas être exposés
+        if port in CRITICAL_EXPOSED_PORTS:
+            service_name, severity, cvss = CRITICAL_EXPOSED_PORTS[port]
+            return (
+                severity,
+                cvss,
+                f"Port {service_name} ({port}) est exposé publiquement ! Ce port ne devrait PAS être accessible depuis Internet. Restreignez l'accès via firewall ou VPN."
+            )
+        
+        # Ports suspects
+        if port in SUSPICIOUS_PORTS:
+            service_name, severity, cvss = SUSPICIOUS_PORTS[port]
+            return (
+                severity,
+                cvss,
+                f"Port {service_name} ({port}) détecté. Vérifiez si ce service doit être accessible publiquement."
+            )
+        
+        # Autres ports - risque moyen par défaut
+        service = port_info.get('service', 'unknown')
+        return (
+            "medium",
+            4.0,
+            f"Port {port} ({service}) détecté. Vérifiez si ce port est nécessaire pour votre application web."
+        )
 

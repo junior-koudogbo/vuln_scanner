@@ -9,17 +9,17 @@ class HeadersScanner:
                 'required': True,
                 'expected': 'nosniff',
                 'description': 'Le header X-Content-Type-Options manque ou est mal configuré',
-                'severity': 'medium',
-                'cvss_score': 5.3,
-                'recommendation': 'Ajouter le header: X-Content-Type-Options: nosniff'
+                'severity': 'low',
+                'cvss_score': 3.0,
+                'recommendation': 'Ajouter le header: X-Content-Type-Options: nosniff pour prévenir le MIME-sniffing'
             },
             'X-Frame-Options': {
                 'required': True,
                 'expected': ['DENY', 'SAMEORIGIN'],
-                'description': 'Le header X-Frame-Options manque, permettant le clickjacking',
-                'severity': 'medium',
-                'cvss_score': 5.3,
-                'recommendation': 'Ajouter le header: X-Frame-Options: DENY ou SAMEORIGIN'
+                'description': 'Le header X-Frame-Options manque, permettant potentiellement le clickjacking',
+                'severity': 'low',
+                'cvss_score': 3.5,
+                'recommendation': 'Ajouter le header: X-Frame-Options: DENY ou SAMEORIGIN pour prévenir le clickjacking'
             },
             'X-XSS-Protection': {
                 'required': False,
@@ -33,17 +33,17 @@ class HeadersScanner:
                 'required': True,
                 'expected': 'max-age=',
                 'description': 'Le header HSTS (Strict-Transport-Security) manque',
-                'severity': 'high',
-                'cvss_score': 6.5,
-                'recommendation': 'Ajouter le header: Strict-Transport-Security: max-age=31536000; includeSubDomains'
+                'severity': 'medium',
+                'cvss_score': 5.0,
+                'recommendation': 'Ajouter le header: Strict-Transport-Security: max-age=31536000; includeSubDomains. Important pour forcer HTTPS et prévenir les attaques man-in-the-middle.'
             },
             'Content-Security-Policy': {
                 'required': True,
                 'expected': None,
                 'description': 'Le header Content-Security-Policy manque',
-                'severity': 'high',
-                'cvss_score': 7.0,
-                'recommendation': 'Ajouter un Content-Security-Policy approprié pour votre application'
+                'severity': 'medium',
+                'cvss_score': 4.5,
+                'recommendation': 'Ajouter un Content-Security-Policy approprié pour votre application. C\'est une best practice de sécurité qui aide à prévenir les attaques XSS.'
             },
             'Referrer-Policy': {
                 'required': False,
