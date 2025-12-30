@@ -1,6 +1,6 @@
 # 🛡️ Plateforme de Scan & Analyse de Vulnérabilités
 
-Une application web complète pour le scan et l'analyse automatique de vulnérabilités web, conçue pour démontrer des compétences en cybersécurité offensive et défensive, ainsi qu'en DevSecOps.
+Vuln_scanner est une application web complète pour le scan et l'analyse automatique de vulnérabilités web, conçue pour développer mes compétences en cybersécurité offensive et défensive, ainsi qu'en DevSecOps.
 
 ## 🎯 Fonctionnalités
 

@@ -1,5 +1,6 @@
 import subprocess
 import re
+import os
 from urllib.parse import urlparse
 
 
@@ -9,12 +10,25 @@ class NiktoScanner:
 
     def _find_nikto(self):
         """Trouver le chemin vers Nikto"""
+        # Essayer de trouver nikto dans le PATH
         try:
             result = subprocess.run(['which', 'nikto'], capture_output=True, text=True)
             if result.returncode == 0:
                 return result.stdout.strip()
         except:
             pass
+        
+        # Essayer le chemin d'installation depuis GitHub
+        possible_paths = [
+            '/usr/local/bin/nikto',
+            '/opt/nikto/program/nikto.pl',
+            '/usr/bin/nikto'
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path) and os.access(path, os.X_OK):
+                return path
+        
         return None
 
     def scan(self, target_url: str):
