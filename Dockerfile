@@ -4,21 +4,17 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y \
     nmap \
     curl \
-    wget \
-    unzip \
+    git \
     perl \
     libwww-perl \
     libnet-ssleay-perl \
     && rm -rf /var/lib/apt/lists/*
 
 # Installer Nikto depuis GitHub (optionnel - le scanner fonctionne sans)
-RUN mkdir -p /opt/nikto && \
-    wget -q https://github.com/sullo/nikto/archive/master.zip -O /tmp/nikto.zip && \
-    unzip -q /tmp/nikto.zip -d /opt/ && \
-    mv /opt/nikto-master /opt/nikto && \
-    rm /tmp/nikto.zip && \
+# Si l'installation échoue, l'application continuera de fonctionner
+RUN (git clone --depth 1 https://github.com/sullo/nikto.git /opt/nikto && \
     chmod +x /opt/nikto/program/nikto.pl && \
-    (ln -s /opt/nikto/program/nikto.pl /usr/local/bin/nikto 2>/dev/null || true)
+    ln -sf /opt/nikto/program/nikto.pl /usr/local/bin/nikto) || echo "Nikto installation failed, continuing without it..."
 
 WORKDIR /app
 
