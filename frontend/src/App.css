@@ -1,0 +1,38 @@
+.App {
+  min-height: 100vh;
+}
+
+.App-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 40px 20px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.App-header h1 {
+  font-size: 2.5em;
+  margin-bottom: 10px;
+}
+
+.App-header p {
+  font-size: 1.2em;
+  opacity: 0.9;
+}
+
+.App-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px 20px;
+}
+
+@media (max-width: 768px) {
+  .App-header h1 {
+    font-size: 1.8em;
+  }
+  
+  .App-header p {
+    font-size: 1em;
+  }
+}
+
