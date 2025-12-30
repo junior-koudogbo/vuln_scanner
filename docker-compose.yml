@@ -9,7 +9,7 @@ services:
       - ./:/app
     environment:
       - PYTHONUNBUFFERED=1
-      - DB_DIR=/app
+      - DB_DIR=/tmp
       - ZAP_PROXY_URL=http://zap:8080
     command: sh -c "cd /app && python3 init_db.py && uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload"
     depends_on:
@@ -31,10 +31,10 @@ services:
       - api
 
   zap:
-    image: owasp/zap2docker-stable:latest
+    image: ghcr.io/zaproxy/zaproxy:stable
     ports:
       - "8080:8080"
-    command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
+    command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true
     environment:
       - ZAP_PORT=8080
     healthcheck:

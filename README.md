@@ -237,8 +237,10 @@ ZAP est maintenant intégré ! Pour l'utiliser :
 
 1. **Démarrer ZAP** (voir `ZAP_SETUP.md` pour les détails) :
 ```bash
-docker run -d -p 8080:8080 owasp/zap2docker-stable zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
+docker run -d -p 8080:8080 ghcr.io/zaproxy/zaproxy:stable zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
 ```
+
+Ou simplement utiliser `docker-compose up` qui démarre ZAP automatiquement.
 
 2. **Lancer un scan complet** : ZAP sera automatiquement utilisé pour des scans actifs plus poussés (Spider + Active Scan)
 

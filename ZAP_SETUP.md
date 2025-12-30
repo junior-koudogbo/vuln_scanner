@@ -10,7 +10,7 @@ Ajoutez ce service à votre `docker-compose.yml` :
 
 ```yaml
   zap:
-    image: owasp/zap2docker-stable:latest
+    image: ghcr.io/zaproxy/zaproxy:stable
     ports:
       - "8080:8080"
     command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.disablekey=true
