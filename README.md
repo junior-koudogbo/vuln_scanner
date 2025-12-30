@@ -336,8 +336,24 @@ Les paramètres peuvent être modifiés dans :
 
 ##  Licence
 
-Ce projet est un projet personnel.
+Ce projet est réalisé à titre personnel par Junior Koudogbo. Vous êtes libre de l'utiliser, le modifier et le distribuer selon vos besoins.
 
-## 👤 Auteur
+##  Auteur
 
-Junior Koudogbo.
+Junior Koudogbo
+
+Projet réalisé dans le cadre d'un apprentissage personnel de la cybersécurité offensive et défensive, ainsi que du DevSecOps.
+
+##  Remerciements
+
+- **OWASP** pour les outils et ressources de sécurité (ZAP, Top 10)
+- **Nmap Project** pour l'outil de scan de ports
+- **Nikto** pour le scanner de vulnérabilités web
+- **FastAPI** et **React** pour les frameworks utilisés
+- La communauté open source pour les ressources et documentations
+
+##  Contact
+
+Pour toute question ou suggestion concernant ce projet, n'hésitez pas à ouvrir une issue sur le [dépôt GitHub](https://github.com/junior-koudogbo/vuln_scanner).
+
+**Note** : Ce projet est à des fins éducatives et de démonstration. Assurez-vous d'avoir l'autorisation appropriée avant d'effectuer des scans de sécurité sur des systèmes qui ne vous appartiennent pas.
