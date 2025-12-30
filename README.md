@@ -202,12 +202,12 @@ export ZAP_API_KEY=votre_cle_api  # Optionnel si api.disablekey=true
    - Dans les détails d'un scan, cliquer sur "Voir le rapport HTML"
    - Le rapport contient toutes les vulnérabilités avec recommandations et scores CVSS
 
-## 📊 Types de scan
+##  Types de scan
 
 - **Rapide (quick)** : Scan des headers de sécurité et ports ouverts
 - **Complet (full)** : Tous les scanners (XSS, SQLi, Headers, Ports, Versions, Nikto, ZAP)
 
-## 🔌 API Endpoints
+##  API Endpoints
 
 ### `GET /`
 Informations sur l'API
