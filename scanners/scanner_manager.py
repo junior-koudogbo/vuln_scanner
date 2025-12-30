@@ -22,7 +22,9 @@ class ScannerManager:
         self.sqli_scanner = SQLiScanner()
         self.version_scanner = VersionScanner()
         # ZAP Scanner (optionnel - utilise l'API ZAP si disponible)
-        zap_url = os.getenv('ZAP_PROXY_URL', 'http://localhost:8080')
+        # Dans Docker, utilise 'zap' comme hostname, sinon localhost
+        default_zap_url = 'http://zap:8080' if os.path.exists('/.dockerenv') else 'http://localhost:8080'
+        zap_url = os.getenv('ZAP_PROXY_URL', default_zap_url)
         zap_key = os.getenv('ZAP_API_KEY', None)
         self.zap_scanner = ZAPScanner(zap_proxy_url=zap_url, zap_api_key=zap_key)
 
