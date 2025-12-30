@@ -3,7 +3,20 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./vuln_scanner.db"
+import os
+
+# Utiliser un chemin absolu pour éviter les problèmes de permissions
+# Dans Docker, on utilise /tmp pour éviter les problèmes de permissions
+if os.path.exists("/app"):
+    # On est dans Docker - utiliser /tmp pour éviter les problèmes de permissions
+    DB_DIR = "/tmp"
+else:
+    # Installation locale
+    DB_DIR = os.path.dirname(os.path.dirname(__file__))
+
+os.makedirs(DB_DIR, exist_ok=True)
+DB_PATH = os.path.join(DB_DIR, "vuln_scanner.db")
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}

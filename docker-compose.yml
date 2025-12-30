@@ -7,10 +7,10 @@ services:
       - "8000:8000"
     volumes:
       - ./:/app
-      - ./vuln_scanner.db:/app/vuln_scanner.db
     environment:
       - PYTHONUNBUFFERED=1
-    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+      - DB_DIR=/app
+    command: sh -c "cd /app && python3 init_db.py && uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload"
 
   frontend:
     build:

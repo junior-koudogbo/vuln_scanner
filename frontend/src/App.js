@@ -34,7 +34,10 @@ function App() {
       setScans(data);
       setApiAvailable(true);
     } catch (error) {
-      console.error('Erreur lors de la récupération des scans:', error);
+      // Ne logger l'erreur qu'une seule fois pour éviter le spam dans la console
+      if (apiAvailable) {
+        console.warn('Backend non disponible. Assurez-vous que l\'API est démarrée sur', API_URL);
+      }
       setApiAvailable(false);
       // Ne pas mettre à jour scans pour garder les données précédentes
     }

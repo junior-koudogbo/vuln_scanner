@@ -16,28 +16,27 @@ docker-compose up --build
 
 ### Option 2 : Installation manuelle
 
-1. **Backend**
+1. **Backend** (Terminal 1)
 ```bash
-# Créer l'environnement virtuel
+# Méthode rapide avec le script
+./start_backend.sh
+
+# OU méthode manuelle :
 python3 -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Installer les dépendances
 pip install -r requirements.txt
-
-# Initialiser la base de données
 python3 init_db.py
-
-# Lancer l'API
 uvicorn api.main:app --reload
 ```
 
-2. **Frontend** (dans un nouveau terminal)
+2. **Frontend** (Terminal 2)
 ```bash
 cd frontend
 npm install
 npm start
 ```
+
+**Important** : Le backend doit être démarré AVANT le frontend pour éviter les erreurs de connexion.
 
 ## Prérequis système
 
