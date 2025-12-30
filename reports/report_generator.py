@@ -121,6 +121,7 @@ def generate_html_report(scan: Scan, vulnerabilities: list) -> str:
         .severity-high { color: #fd7e14; }
         .severity-medium { color: #ffc107; }
         .severity-low { color: #0dcaf0; }
+        .severity-info { color: #6c757d; }
         .vulnerabilities {
             margin-top: 30px;
         }
@@ -225,6 +226,10 @@ def generate_html_report(scan: Scan, vulnerabilities: list) -> str:
             <div class="stat-card">
                 <h3 class="severity-low">{{ severity_counts['low'] }}</h3>
                 <p>Faible</p>
+            </div>
+            <div class="stat-card">
+                <h3 class="severity-info">{{ severity_counts['info'] }}</h3>
+                <p>Information</p>
             </div>
             <div class="stat-card">
                 <h3>{{ len(vulnerabilities) }}</h3>

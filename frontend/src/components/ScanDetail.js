@@ -116,6 +116,10 @@ function ScanDetail({ scan, onBack }) {
           <div className="stat-number">{severityCounts.low}</div>
           <div className="stat-label">Faible</div>
         </div>
+        <div className="stat-item info">
+          <div className="stat-number">{severityCounts.info}</div>
+          <div className="stat-label">Information</div>
+        </div>
         <div className="stat-item total">
           <div className="stat-number">{vulnerabilities.length}</div>
           <div className="stat-label">Total</div>

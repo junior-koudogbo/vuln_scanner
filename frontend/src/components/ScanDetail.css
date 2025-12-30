@@ -86,6 +86,7 @@
 .stat-item.high { border-top: 4px solid #fd7e14; }
 .stat-item.medium { border-top: 4px solid #ffc107; }
 .stat-item.low { border-top: 4px solid #0dcaf0; }
+.stat-item.info { border-top: 4px solid #6c757d; }
 .stat-item.total { border-top: 4px solid #667eea; }
 
 .stat-number {
@@ -98,6 +99,7 @@
 .stat-item.high .stat-number { color: #fd7e14; }
 .stat-item.medium .stat-number { color: #ffc107; }
 .stat-item.low .stat-number { color: #0dcaf0; }
+.stat-item.info .stat-number { color: #6c757d; }
 .stat-item.total .stat-number { color: #667eea; }
 
 .stat-label {
