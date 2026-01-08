@@ -43,7 +43,7 @@ Vuln_scanner est une application web complète pour le scan et l'analyse automat
 - **Docker** : Containerisation de l'application
 - **Docker Compose** : Orchestration multi-conteneurs (API + Frontend + ZAP)
 
-## 📁 Structure du projet
+##  Structure du projet
 
 ```
 vuln_scanner/
@@ -237,7 +237,7 @@ Pour tester l'application, vous pouvez utiliser des cibles de test comme :
 - http://testfire.net
 - Votre propre application de test
 
-⚠️ **Important** : Cette application est conçue pour des tests de sécurité autorisés uniquement. Ne l'utilisez que sur des systèmes pour lesquels vous avez l'autorisation explicite.
+ **Important** : Cette application est conçue pour des tests de sécurité autorisés uniquement. Ne l'utilisez que sur des systèmes pour lesquels vous avez l'autorisation explicite.
 
 ##  Dépannage
 
@@ -326,7 +326,7 @@ Les paramètres peuvent être modifiés dans :
 
 ##  Améliorations futures
 
-- ✅ Intégration OWASP ZAP API (implémentée)
+- Intégration OWASP ZAP API (Déjà implémentée)
 - Support de l'authentification
 - Export PDF des rapports
 - Planification de scans récurrents
